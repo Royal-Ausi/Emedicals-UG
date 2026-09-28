@@ -1,0 +1,626 @@
+<!--
+RESPONSE MODAL - Add this to your doctor dashboard.php
+Place this modal HTML before the closing </body> tag
+-->
+
+<!-- Response Modal -->
+<div id="responseModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2>Respond to Appointment</h2>
+            <button class="close-btn" onclick="closeResponseModal()">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <!-- Patient Info Display -->
+            <div class="patient-info" id="patientInfo">
+                <p><strong>Patient:</strong> <span id="modalPatientName"></span></p>
+                <p><strong>Requested Date:</strong> <span id="modalAppointmentDate"></span></p>
+                <p><strong>Requested Time:</strong> <span id="modalAppointmentTime"></span></p>
+            </div>
+            
+            <form id="responseForm">
+                <input type="hidden" id="responseAppointmentId" name="appointment_id">
+                <input type="hidden" id="responseType" name="response_type">
+                
+                <!-- Response Type Selection -->
+                <div class="form-group">
+                    <label>Response Type:</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="response_type_radio" value="confirm" onchange="toggleResponseFields()" required>
+                            <span>✓ Confirm Appointment</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="response_type_radio" value="reschedule" onchange="toggleResponseFields()">
+                            <span>↻ Reschedule to another time</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="response_type_radio" value="cancel" onchange="toggleResponseFields()">
+                            <span>✗ Cancel Appointment</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Confirm Fields -->
+                <div id="confirmFields" class="response-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="meetingType">Meeting Type *</label>
+                        <select id="meetingType" name="meeting_type" onchange="updateMeetingPlaceholder()">
+                            <option value="">-- Select --</option>
+                            <option value="google_meet">Google Meet</option>
+                            <option value="whatsapp">WhatsApp</option>
+                            <option value="phone">Phone Call</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="meetingLink" id="meetingLinkLabel">Meeting Link/Contact *</label>
+                        <input type="text" id="meetingLink" name="meeting_link" placeholder="Select meeting type first">
+                        <small class="help-text" id="meetingHelp"></small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="doctorNotes">Doctor Notes (Optional)</label>
+                        <textarea id="doctorNotes" name="doctor_notes" rows="3" placeholder="Any additional notes for the patient..."></textarea>
+                    </div>
+                </div>
+                
+                <!-- Reschedule Fields -->
+                <div id="rescheduleFields" class="response-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="newDate">New Date *</label>
+                        <input type="date" id="newDate" name="new_date" min="<?= date('Y-m-d'); ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="newTime">New Time *</label>
+                        <input type="time" id="newTime" name="new_time">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="rescheduleMeetingType">Meeting Type *</label>
+                        <select id="rescheduleMeetingType" name="meeting_type" onchange="updateRescheduleMeetingPlaceholder()">
+                            <option value="">-- Select --</option>
+                            <option value="google_meet">Google Meet</option>
+                            <option value="whatsapp">WhatsApp</option>
+                            <option value="phone">Phone Call</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="rescheduleMeetingLink" id="rescheduleMeetingLinkLabel">Meeting Link/Contact *</label>
+                        <input type="text" id="rescheduleMeetingLink" name="meeting_link" placeholder="Select meeting type first">
+                        <small class="help-text" id="rescheduleMeetingHelp"></small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="rescheduleReason">Reason for Rescheduling (Optional)</label>
+                        <textarea id="rescheduleReason" name="reason" rows="3" placeholder="Why is this appointment being rescheduled?"></textarea>
+                    </div>
+                </div>
+                
+                <!-- Cancel Fields -->
+                <div id="cancelFields" class="response-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="cancelReason">Reason for Cancellation *</label>
+                        <textarea id="cancelReason" name="reason" rows="4" placeholder="Please provide a reason for cancelling this appointment..." required></textarea>
+                    </div>
+                </div>
+                
+                <!-- Error/Success Message -->
+                <div id="responseMessage" style="display: none; margin: 15px 0;"></div>
+                
+                <!-- Action Buttons -->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeResponseModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="submitResponseBtn">
+                        <span id="submitBtnText">Submit Response</span>
+                        <span id="submitBtnLoader" style="display: none;">Processing...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmationModal" class="modal" style="display: none; z-index: 1001;">
+    <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-header">
+            <h2 id="confirmTitle">Confirm Response?</h2>
+            <button class="close-btn" onclick="closeConfirmationModal()">&times;</button>
+        </div>
+        
+        <div class="modal-body" style="padding: 20px;">
+            <p id="confirmMessage" style="font-size: 16px; color: #333; line-height: 1.6; margin: 20px 0;">
+                Please confirm your response to proceed.
+            </p>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeConfirmationModal()">
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-primary" onclick="confirmResponse()">
+                    Yes, Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Additional styles for confirmation modal */
+#confirmationModal .modal-content {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+</style>
+
+<script>
+// Additional confirmation modal functions
+function closeConfirmationModal() {
+    document.getElementById('confirmationModal').classList.remove('active');
+}
+
+/* Response Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    overflow: auto;
+}
+
+.modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 10px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: #003366;
+    font-size: 22px;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #666;
+}
+
+.close-btn:hover {
+    color: #000;
+}
+
+.patient-info {
+    background: #f0f8ff;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.patient-info p {
+    margin: 5px 0;
+}
+
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.radio-label:hover {
+    background: #f8f9fa;
+    border-color: #007bff;
+}
+
+.radio-label input[type="radio"] {
+    margin-right: 10px;
+}
+
+.radio-label input[type="radio"]:checked + span {
+    font-weight: 600;
+    color: #007bff;
+}
+
+.response-fields {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #333;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0,123,255,0.3);
+}
+
+.help-text {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #666;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #0056b3;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #545b62;
+}
+
+.success-msg {
+    color: #28a745;
+    font-weight: 600;
+    padding: 10px;
+    background: #d4edda;
+    border-radius: 5px;
+}
+
+.error-msg {
+    color: #dc3545;
+    font-weight: 600;
+    padding: 10px;
+    background: #f8d7da;
+    border-radius: 5px;
+}
+</style>
+
+<script>
+// Response Modal JavaScript
+let currentAppointmentId = null;
+
+function openResponseModal(appointmentId, patientName, appointmentDate, appointmentTime) {
+    currentAppointmentId = appointmentId;
+    
+    // Set patient info
+    document.getElementById('modalPatientName').textContent = patientName;
+    document.getElementById('modalAppointmentDate').textContent = formatDate(appointmentDate);
+    document.getElementById('modalAppointmentTime').textContent = formatTime(appointmentTime);
+    
+    // Set appointment ID
+    document.getElementById('responseAppointmentId').value = appointmentId;
+    
+    // Reset form
+    document.getElementById('responseForm').reset();
+    document.getElementById('responseMessage').style.display = 'none';
+    document.getElementById('responseMessage').className = '';
+    
+    // Hide all response fields
+    document.getElementById('confirmFields').style.display = 'none';
+    document.getElementById('rescheduleFields').style.display = 'none';
+    document.getElementById('cancelFields').style.display = 'none';
+    
+    // Show modal
+    document.getElementById('responseModal').classList.add('active');
+}
+
+function closeResponseModal() {
+    document.getElementById('responseModal').classList.remove('active');
+    document.getElementById('responseForm').reset();
+    document.getElementById('responseMessage').style.display = 'none';
+    currentAppointmentId = null;
+}
+
+function toggleResponseFields() {
+    const selected = document.querySelector('input[name="response_type_radio"]:checked');
+    if (!selected) return;
+    
+    const responseType = selected.value;
+    document.getElementById('responseType').value = responseType;
+    
+    // Hide all fields
+    document.getElementById('confirmFields').style.display = 'none';
+    document.getElementById('rescheduleFields').style.display = 'none';
+    document.getElementById('cancelFields').style.display = 'none';
+    
+    // Show relevant fields
+    if (responseType === 'confirm') {
+        document.getElementById('confirmFields').style.display = 'block';
+    } else if (responseType === 'reschedule') {
+        document.getElementById('rescheduleFields').style.display = 'block';
+        // Set minimum date to today
+        document.getElementById('newDate').min = new Date().toISOString().split('T')[0];
+    } else if (responseType === 'cancel') {
+        document.getElementById('cancelFields').style.display = 'block';
+    }
+}
+
+function updateMeetingPlaceholder() {
+    const type = document.getElementById('meetingType').value;
+    const input = document.getElementById('meetingLink');
+    const help = document.getElementById('meetingHelp');
+    
+    if (type === 'google_meet') {
+        input.placeholder = 'Enter Google Meet link (e.g., meet.google.com/abc-defg-hij)';
+        help.textContent = 'Format: meet.google.com/xxx-xxxx-xxx or full URL';
+    } else if (type === 'whatsapp') {
+        input.placeholder = 'Enter WhatsApp number (e.g., +256 700 000 000)';
+        help.textContent = 'Format: +256XXXXXXXXX (Uganda format)';
+    } else if (type === 'phone') {
+        input.placeholder = 'Enter phone number to call from (e.g., +256 700 000 000)';
+        help.textContent = 'Format: +256XXXXXXXXX (Uganda format)';
+    } else {
+        input.placeholder = 'Select meeting type first';
+        help.textContent = '';
+    }
+}
+
+function updateRescheduleMeetingPlaceholder() {
+    const type = document.getElementById('rescheduleMeetingType').value;
+    const input = document.getElementById('rescheduleMeetingLink');
+    const help = document.getElementById('rescheduleMeetingHelp');
+    
+    if (type === 'google_meet') {
+        input.placeholder = 'Enter Google Meet link (e.g., meet.google.com/abc-defg-hij)';
+        help.textContent = 'Format: meet.google.com/xxx-xxxx-xxx or full URL';
+    } else if (type === 'whatsapp') {
+        input.placeholder = 'Enter WhatsApp number (e.g., +256 700 000 000)';
+        help.textContent = 'Format: +256XXXXXXXXX (Uganda format)';
+    } else if (type === 'phone') {
+        input.placeholder = 'Enter phone number to call from (e.g., +256 700 000 000)';
+        help.textContent = 'Format: +256XXXXXXXXX (Uganda format)';
+    } else {
+        input.placeholder = 'Select meeting type first';
+        help.textContent = '';
+    }
+}
+
+function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function formatTime(timeStr) {
+    // Convert 24h to 12h format
+    const [hours, minutes] = timeStr.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minutes} ${ampm}`;
+}
+
+// Store form data for confirmation
+let pendingFormData = null;
+let pendingResponseType = null;
+
+// Form submission
+document.getElementById('responseForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const messageDiv = document.getElementById('responseMessage');
+    const submitBtn = document.getElementById('submitResponseBtn');
+    const submitText = document.getElementById('submitBtnText');
+    const submitLoader = document.getElementById('submitBtnLoader');
+    
+    // Validate form
+    const responseType = formData.get('response_type');
+    if (!responseType) {
+        showMessage('Please select a response type.', 'error');
+        return;
+    }
+    
+    // Store form data for later confirmation
+    pendingFormData = formData;
+    pendingResponseType = responseType;
+    
+    // Show confirmation modal
+    openConfirmationModal(responseType);
+});
+
+function openConfirmationModal(responseType) {
+    const confirmModal = document.getElementById('confirmationModal');
+    const confirmTitle = document.getElementById('confirmTitle');
+    const confirmMessage = document.getElementById('confirmMessage');
+    
+    let title = '';
+    let message = '';
+    
+    if (responseType === 'confirm') {
+        title = 'Confirm Appointment Response?';
+        message = 'You are confirming this appointment. The patient will be notified with the meeting details.';
+    } else if (responseType === 'reschedule') {
+        title = 'Reschedule Appointment?';
+        message = 'The patient will be notified that their appointment needs to be rescheduled.';
+    } else if (responseType === 'cancel') {
+        title = 'Cancel Appointment?';
+        message = 'The patient will be notified that their appointment has been cancelled. This action cannot be undone.';
+    }
+    
+    confirmTitle.textContent = title;
+    confirmMessage.textContent = message;
+    confirmModal.classList.add('active');
+}
+
+function closeConfirmationModal() {
+    document.getElementById('confirmationModal').classList.remove('active');
+}
+
+function confirmResponse() {
+    if (!pendingFormData || !pendingResponseType) {
+        alert('Error: No response data found.');
+        return;
+    }
+    
+    const confirmModal = document.getElementById('confirmationModal');
+    const submitBtn = document.getElementById('submitResponseBtn');
+    const submitText = document.getElementById('submitBtnText');
+    const submitLoader = document.getElementById('submitBtnLoader');
+    
+    // Close confirmation modal
+    closeConfirmationModal();
+    
+    // Show loading state in main modal
+    submitBtn.disabled = true;
+    submitText.style.display = 'none';
+    submitLoader.style.display = 'inline';
+    
+    // Send AJAX request
+    fetch('doctor/respond-appointment.php', {
+        method: 'POST',
+        body: pendingFormData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            const messageDiv = document.getElementById('responseMessage');
+            messageDiv.innerHTML = '<p class="success-msg">✓ ' + data.message + '</p>';
+            messageDiv.style.display = 'block';
+            
+            // Close modal and redirect after short delay
+            setTimeout(() => {
+                closeResponseModal();
+                location.reload(); // Reload to show updated status
+            }, 2000);
+        } else {
+            // Show error message
+            const messageDiv = document.getElementById('responseMessage');
+            messageDiv.innerHTML = '<p class="error-msg">✗ ' + (data.message || 'An error occurred. Please try again.') + '</p>';
+            messageDiv.style.display = 'block';
+            
+            submitBtn.disabled = false;
+            submitText.style.display = 'inline';
+            submitLoader.style.display = 'none';
+        }
+    })
+    .catch(error => {
+        // Show error message
+        const messageDiv = document.getElementById('responseMessage');
+        messageDiv.innerHTML = '<p class="error-msg">✗ Network error. Please check your connection and try again.</p>';
+        messageDiv.style.display = 'block';
+        
+        submitBtn.disabled = false;
+        submitText.style.display = 'inline';
+        submitLoader.style.display = 'none';
+    });
+}
+
+function showMessage(message, type) {
+    const messageDiv = document.getElementById('responseMessage');
+    messageDiv.textContent = message;
+    messageDiv.className = type === 'success' ? 'success-msg' : 'error-msg';
+    messageDiv.style.display = 'block';
+    
+    // Scroll to message
+    messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Close modal when clicking outside
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('responseModal');
+    if (event.target === modal) {
+        closeResponseModal();
+    }
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeResponseModal();
+    }
+});
+</script>
+

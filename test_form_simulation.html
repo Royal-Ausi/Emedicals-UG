@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Blog Form Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .success { color: green; padding: 10px; background: #e8f5e9; margin: 10px 0; border-radius: 5px; }
+        .error { color: red; padding: 10px; background: #ffebee; margin: 10px 0; border-radius: 5px; }
+        .info { color: blue; padding: 10px; background: #e3f2fd; margin: 10px 0; border-radius: 5px; }
+        textarea { width: 100%; padding: 10px; min-height: 200px; }
+        input, select { width: 100%; padding: 8px; margin: 5px 0; }
+        button { padding: 10px 20px; cursor: pointer; margin: 10px 0; }
+        .console { background: #f5f5f5; padding: 15px; border: 1px solid #ddd; margin: 20px 0; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>Blog Form Submission Test</h1>
+    
+    <div class="info">
+        <strong>How to use:</strong> Fill out the form below and click "Simulate Submit". Watch the console below for debug messages. After "Validation passed", the form data would be sent to the server.
+    </div>
+
+    <form id="testForm">
+        <div>
+            <label>Title (min 10 chars):</label>
+            <input type="text" name="title" value="Test Article About REST APIs and Web Services" placeholder="Enter title...">
+        </div>
+
+        <div>
+            <label>Excerpt (min 50 chars):</label>
+            <textarea name="excerpt">This is a comprehensive excerpt about REST APIs. It covers all the fundamentals needed to understand RESTful web services and best practices.</textarea>
+        </div>
+
+        <div>
+            <label>Content (min 100 chars, simulating TinyMCE):</label>
+            <textarea name="content" id="content">REST APIs are a fundamental part of modern web development. This comprehensive article covers the basics of REST, HTTP methods, status codes, and best practices for building scalable web services. We'll explore how to design RESTful APIs that are intuitive, scalable, and maintainable.</textarea>
+        </div>
+
+        <div>
+            <label>Category:</label>
+            <select name="category_id">
+                <option value="">-- Select Category --</option>
+                <option value="1" selected>Technology</option>
+                <option value="2">Business</option>
+                <option value="3">Lifestyle</option>
+            </select>
+        </div>
+
+        <div>
+            <label>Author:</label>
+            <select name="author_id">
+                <option value="">-- Select Author --</option>
+                <option value="1" selected>John Developer</option>
+                <option value="2">Jane Writer</option>
+                <option value="3">Bob Editor</option>
+            </select>
+        </div>
+
+        <div>
+            <label>Status:</label>
+            <select name="status">
+                <option value="draft" selected>Draft</option>
+                <option value="published">Published</option>
+            </select>
+        </div>
+
+        <button type="button" onclick="simulateSubmit()">Simulate Submit</button>
+        <button type="reset">Clear</button>
+    </form>
+
+    <h2>Debug Console:</h2>
+    <div class="console" id="debugConsole"></div>
+
+    <script>
+        function log(msg) {
+            console.log(msg);
+            const console_el = document.getElementById('debugConsole');
+            console_el.innerHTML += msg + '\n';
+            console_el.scrollTop = console_el.scrollHeight;
+        }
+
+        function simulateSubmit() {
+            log('[FORM DEBUG] Form submission started');
+            const form = document.getElementById('testForm');
+            
+            if (!form) {
+                log('[ERROR] Form not found!');
+                return;
+            }
+            
+            log('[FORM DEBUG] Form found');
+            
+            // Simulate TinyMCE sync (in real form, this requires TinyMCE library)
+            log('[FORM DEBUG] Syncing content from editor');
+            
+            // Get form data
+            const title = form.querySelector('input[name="title"]').value || '';
+            const excerpt = form.querySelector('textarea[name="excerpt"]').value || '';
+            const content = form.querySelector('textarea[name="content"]').value || '';
+            const category = form.querySelector('select[name="category_id"]').value || '';
+            const author = form.querySelector('select[name="author_id"]').value || '';
+            
+            log('[FORM DEBUG] Validation check - Title: ' + title.length + ', Excerpt: ' + excerpt.length + ', Content: ' + content.length + ', Category: ' + category + ', Author: ' + author);
+            
+            // Validate
+            let errors = [];
+            if (title.trim().length < 10) errors.push('Title must be at least 10 characters');
+            if (excerpt.trim().length < 50) errors.push('Excerpt must be at least 50 characters');
+            if (content.trim().length < 100) errors.push('Content must be at least 100 characters');
+            if (!category || category === '') errors.push('Please select a category');
+            if (!author || author === '') errors.push('Please select an author');
+            
+            if (errors.length > 0) {
+                log('[FORM DEBUG] ❌ Validation FAILED:');
+                errors.forEach(err => log('  - ' + err));
+                return false;
+            }
+            
+            log('[FORM DEBUG] ✓ Validation PASSED');
+            log('[FORM DEBUG] Form is ready to submit');
+            log('');
+            log('Form data that would be sent:');
+            log(JSON.stringify({
+                title: title,
+                excerpt: excerpt,
+                content: content.substring(0, 50) + '...',
+                category_id: category,
+                author_id: author
+            }, null, 2));
+            log('');
+            log('✓ In a real browser form, this would now POST to the server');
+        }
+        
+        log('[FORM DEBUG] Page initialized');
+    </script>
+</body>
+</html>

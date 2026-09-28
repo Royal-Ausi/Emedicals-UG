@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Edit Buttons</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        .btn-blue { background: #007bff; color: white; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal.active { display: flex; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 20px; border-radius: 5px; min-width: 400px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Edit Buttons Test</h1>
+    
+    <div class="test-section">
+        <h2>User Edit Button Test</h2>
+        <table border="1">
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Action</th>
+            </tr>
+            <tr>
+                <td>1</td>
+                <td>John O'Brien</td>
+                <td>john@example.com</td>
+                <td>
+                    <button class="btn btn-blue edit-user-btn" data-id="1" data-fullname="John O'Brien" data-email="john@example.com" data-type="patient" data-status="active">Edit</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <h2>Edit User</h2>
+            <form id="userForm">
+                <input type="hidden" id="userId" name="id">
+                <div>
+                    <label>Fullname:</label>
+                    <input type="text" id="userFullname" name="fullname">
+                </div>
+                <div>
+                    <label>Email:</label>
+                    <input type="email" id="userEmail" name="email">
+                </div>
+                <button type="submit">Save</button>
+                <button type="button" onclick="closeUserModal()">Cancel</button>
+            </form>
+            <div id="userMessage"></div>
+        </div>
+    </div>
+
+    <script>
+        console.log('Test page loaded');
+        
+        function openUserModal(id, fullname, email, userType, status) {
+            console.log('openUserModal called with:', id, fullname, email, userType, status);
+            document.getElementById('userId').value = id;
+            document.getElementById('userFullname').value = fullname;
+            document.getElementById('userEmail').value = email;
+            document.getElementById('userMessage').innerHTML = '<p class="success">✓ Modal opened successfully!</p>';
+            document.getElementById('userModal').classList.add('active');
+        }
+
+        function closeUserModal() {
+            document.getElementById('userModal').classList.remove('active');
+        }
+
+        window.addEventListener('load', function() {
+            console.log('Window load event fired');
+            
+            // User Edit Button Event Delegation
+            document.addEventListener('click', function(e) {
+                console.log('Click detected on:', e.target.className);
+                if (e.target.classList.contains('edit-user-btn')) {
+                    console.log('Edit user button clicked');
+                    const btn = e.target;
+                    const id = btn.dataset.id;
+                    const fullname = btn.dataset.fullname;
+                    const email = btn.dataset.email;
+                    const userType = btn.dataset.type;
+                    const status = btn.dataset.status;
+                    console.log('Data attributes:', { id, fullname, email, userType, status });
+                    openUserModal(id, fullname, email, userType, status);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
